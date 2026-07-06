@@ -1,37 +1,37 @@
 #!name=NodeSeek 每日签到
-#!desc=自动签到领鸡腿 🍗 — MITM 自动捕获 Cookie，每天定时签到，支持面板手动触发
+#!desc=访问 nodeseek.com 时自动签到领鸡腿 🍗 — 页面加载后自动执行，顶部显示结果横幅
 #!author=dawangLM
 #!homepage=https://github.com/dawangLM/surge-scripts
-#!version=1.0.0
+#!version=2.0.0
 #!icon=https://icons.duckduckgo.com/ip3/nodeseek.com.ico
 
 # ============================================
-#  NodeSeek 每日签到模块
+#  NodeSeek 每日签到模块 v2
 #  安装方式：Surge → 模块 → 安装新模块 → 输入 raw 地址
-#  或直接在 Surge 中导入此文件
-# ============================================
+#
+#  原理（v2 全新方案）：
+#  Surge 内置 HTTP 客户端无法在 Cloudflare 保护的站点正常发 POST 请求。
+#  因此 v2 改用浏览器注入方案：
+#  - 当你访问 nodeseek.com 任一页面时
+#  - 脚本在页面中注入 JavaScript
+#  - JS 利用浏览器已有的 Cloudflare 验证 + 登录会话
+#  - 自动向签到 API 发 POST 请求
+#  - 结果以横幅形式显示在页面顶部（6 秒后自动消失）
 #
 #  首次使用：
-#  1. 确保开启 MITM 并信任证书
-#  2. 在浏览器中打开 www.nodeseek.com 并登录
-#  3. 脚本会自动捕获并存储 Cookie
-#  4. 之后每天 8:00 自动签到
-#  5. 也可在 Surge 脚本面板手动点击运行
-#
-#  可选配置（在脚本面板中编辑持久化数据）：
-#  - 存储键「nodeseek_member_id」设为你的用户 ID
-#    可从个人空间 URL /space/{id} 获取
-#    填了之后签到通知会额外显示鸡腿余额
+#  1. 确保已开启 MITM 并信任证书
+#  2. 在浏览器中打开 nodeseek.com 并登录
+#  3. 脚本自动捕获 Cookie（有通知提示）
+#  4. 之后每次访问 nodeseek.com，页面加载完成后自动签到
+#  5. 每天每浏览器只签一次（基于 localStorage）
+# ============================================
 
 [Script]
-# MITM 捕获 Cookie — 访问 nodeseek.com 时自动保存
+# 捕获 Cookie — 访问 nodeseek.com 时自动保存 Cookie
 http-request ^https?:\/\/(?:www\.)?nodeseek\.com script-path=https://raw.githubusercontent.com/dawangLM/surge-scripts/main/surge-scripts/nodeseek.js, tag=NodeSeek-捕获Cookie
 
-# 定时签到 — 每天早上 8:00 自动执行
-cron "0 8 * * *" script-path=https://raw.githubusercontent.com/dawangLM/surge-scripts/main/surge-scripts/nodeseek.js, tag=NodeSeek-每日签到
-
-# 手动签到 — 可在 Surge 脚本面板手动触发
-script-path=https://raw.githubusercontent.com/dawangLM/surge-scripts/main/surge-scripts/nodeseek.js, tag=NodeSeek-手动签到
+# 自动签到 — 在 HTML 页面注入 JS，浏览器上下文中执行签到
+http-response ^https?:\/\/(?:www\.)?nodeseek\.com script-path=https://raw.githubusercontent.com/dawangLM/surge-scripts/main/surge-scripts/nodeseek.js, requires-body=true, tag=NodeSeek-自动签到
 
 [MITM]
 hostname = %APPEND% www.nodeseek.com
