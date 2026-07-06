@@ -162,7 +162,9 @@ async function signInRequest(cookie) {
   };
 
   return new Promise((resolve) => {
-    $httpClient.post(CONFIG.signUrl, {
+    $httpClient.request({
+      method: 'POST',
+      url: CONFIG.signUrl,
       headers: headers,
       body: '',
     }, (error, response, data) => {
@@ -186,7 +188,7 @@ async function signInRequest(cookie) {
         let body;
         if (isHTML && isMethodError) {
           body = `HTTP ${response.status} | 请求被当作 ${data.match(/Cannot\s+(\w+)/i)?.[1] || '?'} 发送\n` +
-            `Surge 的 \$httpClient.post 可能未正确发出 POST，请检查脚本传参方式`;
+            `\$httpClient 未正确发出 POST，已改用 \$httpClient.request({method:'POST',...})`;
         } else if (isHTML) {
           body = `HTTP ${response.status} | 收到 HTML 而非 JSON（可能被 Cloudflare 拦截）\n请先手动访问 nodeseek.com 一次再重试`;
         } else {
