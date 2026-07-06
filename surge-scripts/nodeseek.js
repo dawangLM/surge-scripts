@@ -141,7 +141,7 @@ async function doSignIn() {
   }
 
   if (!body && !subtitle) {
-    subtitle = '签到已完成';
+    subtitle = '签到已完成（无详细消息）';
   }
 
   $notification.post(title, subtitle, body);
@@ -181,7 +181,13 @@ async function signInRequest(cookie) {
           data: result,
         });
       } catch (e) {
-        $notification.post('❌ NodeSeek 签到解析失败', '', `HTTP ${response.status}: ${data.substring(0, 200)}`);
+        // 解析失败 — 显示完整原始响应，便于调试
+        const isHTML = /^\s*</.test(data);
+        const body = isHTML
+          ? `HTTP ${response.status} | 收到 HTML 而非 JSON（可能被 Cloudflare 拦截）\n请先手动访问 nodeseek.com 一次再重试`
+          : `HTTP ${response.status} | 原始响应:\n${data.substring(0, 500)}`;
+        console.log(`[NodeSeek] 签到响应解析失败\nStatus: ${response.status}\nBody: ${data}`);
+        $notification.post('❌ NodeSeek 签到 — 响应解析失败', '', body);
         resolve(null);
       }
     });
@@ -238,7 +244,8 @@ async function getUserInfo(cookie, memberId) {
           resolve(result.message || '');
         }
       } catch (e) {
-        resolve('');
+        console.log(`[NodeSeek] 用户信息解析失败\nStatus: ${response.status}\nBody: ${data.substring(0, 300)}`);
+        resolve('[JSON 解析失败，请检查 memberId 或 Cookie]');
       }
     });
   });
