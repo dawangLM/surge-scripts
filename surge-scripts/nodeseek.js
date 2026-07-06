@@ -155,55 +155,60 @@ async function signInRequest(cookie) {
     'Accept': '*/*',
     'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
     'Content-Type': 'application/x-www-form-urlencoded',
+    'Content-Length': '0',
     'Origin': 'https://www.nodeseek.com',
     'Referer': 'https://www.nodeseek.com/board',
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
     'Cookie': cookie,
   };
 
-  headers['Content-Length'] = '0'; // 明确指定无 body，避免 Surge 误判为 GET
-
   return new Promise((resolve) => {
-    $task.fetch({
-      method: 'POST',
-      url: CONFIG.signUrl,
-      headers: headers,
-      body: '',
-    }).then(response => {
-      const { statusCode, body, headers: respHeaders } = response;
-      // $task.fetch 的 body 可能是 Base64 编码的，尝试解码
-      let data = body;
-      if (respHeaders && respHeaders['Content-Encoding'] === 'base64') {
-        try { data = $base64.decode(body); } catch (e) {}
-      }
+    // 尝试 $task.fetch（Surge 5+），不支持则降级到 $httpClient
+    const doFetch = typeof $task !== 'undefined' && $task.fetch;
+    const apiName = doFetch ? '$task.fetch' : '$httpClient';
 
+    const handleResponse = (statusCode, body) => {
       try {
-        const result = JSON.parse(data);
+        const result = JSON.parse(body);
         resolve({
           success: result.success === true,
           message: result.message || '',
           data: result,
         });
       } catch (e) {
-        // 解析失败 — 显示完整原始响应，便于调试
-        const isHTML = /^\s*</.test(data);
-        const isMethodError = /Cannot\s+(GET|POST|PUT|DELETE)/i.test(data);
+        const isHTML = /^\s*</.test(body);
+        const isMethodError = /Cannot\s+(GET|POST|PUT|DELETE)/i.test(body);
         let notice;
         if (isHTML && isMethodError) {
-          notice = `❌ 请求被当作 ${data.match(/Cannot\s+(\w+)/i)?.[1] || '?'} 发送 — Cloudflare 可能拦截了 POST 方法`;
+          notice = `[${apiName}] 请求被当作 ${body.match(/Cannot\s+(\w+)/i)?.[1] || '?'} 发送\n该 API 在 Surge 中可能被 Cloudflare 拦截`;
         } else if (isHTML) {
-          notice = `❌ 收到 HTML 而非 JSON — Cloudflare 拦截\n请手动访问 nodeseek.com 一次再重试`;
+          notice = `[${apiName}] 收到 HTML 而非 JSON — Cloudflare 拦截\n请手动访问 nodeseek.com 一次再重试`;
         } else {
-          notice = `❌ 响应不是 JSON\nHTTP ${statusCode}\n${data.substring(0, 400)}`;
+          notice = `[${apiName}] 响应不是 JSON\nHTTP ${statusCode}\n${body.substring(0, 400)}`;
         }
-        console.log(`[NodeSeek] 签到响应解析失败\nStatus: ${statusCode}\nBody: ${data}`);
+        console.log(`[NodeSeek] 签到响应解析失败 (${apiName})\nStatus: ${statusCode}\nBody: ${body}`);
         $notification.post('❌ NodeSeek 签到 — 响应解析失败', '', notice);
         resolve(null);
       }
-    }, error => {
-      $notification.post('❌ NodeSeek 签到网络错误', '', error.message || String(error));
-      resolve(null);
-    });
+    };
+
+    if (doFetch) {
+      $task.fetch({ method: 'POST', url: CONFIG.signUrl, headers, body: '' })
+        .then(r => handleResponse(r.statusCode, r.body))
+        .catch(err => {
+          $notification.post('❌ NodeSeek 签到网络错误', `[$task.fetch]`, err.message || String(err));
+          resolve(null);
+        });
+    } else {
+      $httpClient.post(CONFIG.signUrl, { headers, body: '' }, (err, resp, data) => {
+        if (err) {
+          $notification.post('❌ NodeSeek 签到网络错误', '', err.message || String(err));
+          resolve(null);
+          return;
+        }
+        handleResponse(resp.status, data);
+      });
+    }
   });
 }
 
