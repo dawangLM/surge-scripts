@@ -161,17 +161,20 @@ async function signInRequest(cookie) {
     'Cookie': cookie,
   };
 
+  headers['Content-Length'] = '0'; // 明确指定无 body，避免 Surge 误判为 GET
+
   return new Promise((resolve) => {
-    $httpClient.request({
+    $task.fetch({
       method: 'POST',
       url: CONFIG.signUrl,
       headers: headers,
       body: '',
-    }, (error, response, data) => {
-      if (error) {
-        $notification.post('❌ NodeSeek 签到网络错误', '', error.message || String(error));
-        resolve(null);
-        return;
+    }).then(response => {
+      const { statusCode, body, headers: respHeaders } = response;
+      // $task.fetch 的 body 可能是 Base64 编码的，尝试解码
+      let data = body;
+      if (respHeaders && respHeaders['Content-Encoding'] === 'base64') {
+        try { data = $base64.decode(body); } catch (e) {}
       }
 
       try {
@@ -185,19 +188,21 @@ async function signInRequest(cookie) {
         // 解析失败 — 显示完整原始响应，便于调试
         const isHTML = /^\s*</.test(data);
         const isMethodError = /Cannot\s+(GET|POST|PUT|DELETE)/i.test(data);
-        let body;
+        let notice;
         if (isHTML && isMethodError) {
-          body = `HTTP ${response.status} | 请求被当作 ${data.match(/Cannot\s+(\w+)/i)?.[1] || '?'} 发送\n` +
-            `\$httpClient 未正确发出 POST，已改用 \$httpClient.request({method:'POST',...})`;
+          notice = `❌ 请求被当作 ${data.match(/Cannot\s+(\w+)/i)?.[1] || '?'} 发送 — Cloudflare 可能拦截了 POST 方法`;
         } else if (isHTML) {
-          body = `HTTP ${response.status} | 收到 HTML 而非 JSON（可能被 Cloudflare 拦截）\n请先手动访问 nodeseek.com 一次再重试`;
+          notice = `❌ 收到 HTML 而非 JSON — Cloudflare 拦截\n请手动访问 nodeseek.com 一次再重试`;
         } else {
-          body = `HTTP ${response.status} | 原始响应:\n${data.substring(0, 500)}`;
+          notice = `❌ 响应不是 JSON\nHTTP ${statusCode}\n${data.substring(0, 400)}`;
         }
-        console.log(`[NodeSeek] 签到响应解析失败\nStatus: ${response.status}\nBody: ${data}`);
-        $notification.post('❌ NodeSeek 签到 — 响应解析失败', '', body);
+        console.log(`[NodeSeek] 签到响应解析失败\nStatus: ${statusCode}\nBody: ${data}`);
+        $notification.post('❌ NodeSeek 签到 — 响应解析失败', '', notice);
         resolve(null);
       }
+    }, error => {
+      $notification.post('❌ NodeSeek 签到网络错误', '', error.message || String(error));
+      resolve(null);
     });
   });
 }
