@@ -1,8 +1,8 @@
-# zgf — 杂项工具集
+# zgf
 
-该仓库包含一些有用的工具脚本。
+个人工具脚本合集。
 
 ## 目录
 
-- [surge-scripts/](./surge-scripts/) — Surge 平台自动化脚本
-  - [nodeseek.js](./surge-scripts/nodeseek.js) — NodeSeek 每日签到（领鸡腿）
+- [surge-scripts/](./surge-scripts/) — Surge 平台自动化脚本与模块
+  - [NodeSeek 每日签到](./surge-scripts/nodeseek.sgmodule) — 自动签到领鸡腿

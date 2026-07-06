@@ -1,0 +1,37 @@
+#!name=NodeSeek 每日签到
+#!desc=自动签到领鸡腿 🍗 — MITM 自动捕获 Cookie，每天定时签到，支持面板手动触发
+#!author=dawangLM
+#!homepage=https://github.com/dawangLM/surge-scripts
+#!version=1.0.0
+#!icon=https://icons.duckduckgo.com/ip3/nodeseek.com.ico
+
+# ============================================
+#  NodeSeek 每日签到模块
+#  安装方式：Surge → 模块 → 安装新模块 → 输入 raw 地址
+#  或直接在 Surge 中导入此文件
+# ============================================
+#
+#  首次使用：
+#  1. 确保开启 MITM 并信任证书
+#  2. 在浏览器中打开 www.nodeseek.com 并登录
+#  3. 脚本会自动捕获并存储 Cookie
+#  4. 之后每天 8:00 自动签到
+#  5. 也可在 Surge 脚本面板手动点击运行
+#
+#  可选配置（在脚本面板中编辑持久化数据）：
+#  - 存储键「nodeseek_member_id」设为你的用户 ID
+#    可从个人空间 URL /space/{id} 获取
+#    填了之后签到通知会额外显示鸡腿余额
+
+[Script]
+# MITM 捕获 Cookie — 访问 nodeseek.com 时自动保存
+http-request ^https?:\/\/(?:www\.)?nodeseek\.com script-path=https://raw.githubusercontent.com/dawangLM/surge-scripts/main/surge-scripts/nodeseek.js, tag=NodeSeek-捕获Cookie
+
+# 定时签到 — 每天早上 8:00 自动执行
+cron "0 8 * * *" script-path=https://raw.githubusercontent.com/dawangLM/surge-scripts/main/surge-scripts/nodeseek.js, tag=NodeSeek-每日签到
+
+# 手动签到 — 可在 Surge 脚本面板手动触发
+script-path=https://raw.githubusercontent.com/dawangLM/surge-scripts/main/surge-scripts/nodeseek.js, tag=NodeSeek-手动签到
+
+[MITM]
+hostname = %APPEND% www.nodeseek.com
