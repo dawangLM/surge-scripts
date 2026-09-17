@@ -4,6 +4,22 @@ Surge 平台的实用自动化脚本与模块。
 
 ---
 
+## 🚀 AnyRouter 自动签到
+
+登录一次后自动捕获站点会话，每天 **09:05** 调用签到接口领取额度。
+
+### 一键安装
+
+Surge → 模块 → 安装新模块 → 输入：
+
+```text
+https://raw.githubusercontent.com/dawangLM/surge-scripts/main/surge-scripts/anyrouter-signin.sgmodule
+```
+
+首次安装后，保持 Surge 运行并登录 [AnyRouter 控制台](https://anyrouter.top/console)。收到“凭证获取成功”通知后，可长按定时脚本手动验证。详细说明见 [anyrouter-readme.md](./anyrouter-readme.md)。
+
+---
+
 ## 📦 NodeSeek 每日签到
 
 自动签到领鸡腿 🍗，通过 MITM 自动捕获 Cookie。
@@ -52,6 +68,9 @@ hostname = %APPEND% www.nodeseek.com
 
 | 文件 | 说明 |
 |------|------|
+| `anyrouter-signin.js` | AnyRouter 凭证捕获与定时签到脚本 |
+| `anyrouter-signin.sgmodule` | AnyRouter 一键安装模块 |
+| `anyrouter-readme.md` | AnyRouter 详细配置文档 |
 | `nodeseek.js` | 签到脚本核心（MITM 捕获 + 定时签到 + 面板触发） |
 | `nodeseek.sgmodule` | Surge 模块（一键安装，引用远程 JS） |
 | `nodeseek-readme.md` | 详细配置文档 |

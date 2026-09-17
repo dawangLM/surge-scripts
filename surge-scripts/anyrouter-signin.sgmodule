@@ -1,0 +1,13 @@
+#!name=AnyRouter 自动签到
+#!desc=登录一次后捕获站点会话，每天 09:05 调用官方签到接口领取额度。
+#!author=dawangLM
+#!homepage=https://github.com/dawangLM/surge-scripts
+#!version=1.0.0
+#!icon=https://anyrouter.top/logo.png
+
+[Script]
+AnyRouter 获取签到凭证 = type=http-request, pattern=^https:\/\/anyrouter\.top\/api\/user\/sign_in(?:\?.*)?$, script-path=https://raw.githubusercontent.com/dawangLM/surge-scripts/main/surge-scripts/anyrouter-signin.js, requires-body=false, timeout=10
+AnyRouter 每日自动签到 = type=cron, cronexp="5 9 * * *", script-path=https://raw.githubusercontent.com/dawangLM/surge-scripts/main/surge-scripts/anyrouter-signin.js, timeout=20, wake-system=true
+
+[MITM]
+hostname = %APPEND% anyrouter.top
